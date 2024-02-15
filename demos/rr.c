@@ -1,4 +1,5 @@
 #include "lwp.h"
+#include <stddef.h>
 
 thread head = NULL;
 thread tail = NULL;
@@ -23,9 +24,9 @@ void admit(thread new) {
         tail = new;
     }
     else{
-        tail->next = new;
-        new->prev = tail;
-        new->next = NULL;
+        tail->sched_one = new;
+        new->sched_two = tail;
+        new->sched_one = NULL;
         tail = new;
     }
 }
@@ -33,30 +34,30 @@ void admit(thread new) {
 void remove(thread victim) {
     thread current = tail;
     while (current && current->tid != victim->tid) {
-        current = current->prev;
+        current = current->sched_two;
     }
 
     if (current == NULL || current->tid != victim->tid) {
         return; //victim not found
     }
 
-    if (current->prev) {
-        current->prev->next = current->next;
+    if (current->sched_two) {
+        current->sched_two->sched_one = current->sched_one;
     } else {
-        head = current->next;
-        head->prev = NULL;
+        head = current->sched_one;
+        head->sched_two = NULL;
     }
 
-    if (current->next) {
-        current->next->prev = current->prev;
+    if (current->sched_one) {
+        current->sched_one->sched_two = current->sched_two;
     } else {
-        tail = current->prev;
-        tail->next = NULL;
+        tail = current->sched_two;
+        tail->sched_one = NULL;
     }
     qlength--;
 }
 
-thread next(void) {
+thread sched_one(void) {
     thread current;
 
     if (qlength == 0) {
@@ -64,15 +65,15 @@ thread next(void) {
     }
 
     current = head;
-    head = head->next;
+    head = head->sched_one;
     if (head) {
-        head->prev = NULL;
+        head->sched_two = NULL;
     } else {
         tail = NULL;
     }
 
-    current->next = NULL;
-    current->prev = NULL;
+    current->sched_one = NULL;
+    current->sched_two = NULL;
 
     qlength--;
     return current;
