@@ -59,3 +59,6 @@ hs: hungry
 
 ns: nums
 	(export LD_LIBRARY_PATH=../lib64; ./nums)
+
+rr.o: rr.c ../include/lwp.h
+	$(CC) $(CFLAGS) -o rr.o -c rr.c
