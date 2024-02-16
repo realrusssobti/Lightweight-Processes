@@ -1,16 +1,16 @@
 CC 	= gcc
 
-CFLAGS  = -Wall -g -I ../include
+CFLAGS  = -Wall -g -arch x86_64 -I ../include
 
 LD 	= gcc
 
-LDFLAGS  = -Wall -g -L../lib64
+LDFLAGS  = -Wall -g -L ../lib64
 
 PROGS	= snakes nums hungry
 
 SNAKEOBJS  = randomsnakes.o util.o
 
-SNAKELIBS = -lPLN -lsnakes -lncurses -lrt
+SNAKELIBS = -lPLN -lsnakes -lncurses
 
 HUNGRYOBJS = hungrysnakes.o util.o
 
@@ -33,10 +33,10 @@ clean:
 snakes: randomsnakes.o util.o ../lib64/libPLN.so ../lib64/libsnakes.so
 	$(LD) $(LDFLAGS) -o snakes randomsnakes.o util.o $(SNAKELIBS)
 
-hungry: hungrysnakes.o  util.o ../lib64/libPLN.so ../lib64/libsnakes.so
+hungry: hungrysnakes.o  util.o ../lib64/libPLN.so../lib64/libsnakes.so
 	$(LD) $(LDFLAGS) -o hungry hungrysnakes.o util.o $(SNAKELIBS)
 
-nums: numbersmain.o  util.o ../lib64/libPLN.so 
+nums: numbersmain.o  util.o ../lib64/libPLN.a
 	$(LD) $(LDFLAGS) -o nums numbersmain.o -lPLN
 
 hungrysnakes.o: hungrysnakes.c ../include/lwp.h ../include/snakes.h
@@ -60,5 +60,10 @@ hs: hungry
 ns: nums
 	(export LD_LIBRARY_PATH=../lib64; ./nums)
 
-rr.o: rr.c ../include/lwp.h
+rr.o: ../src/rr.c ../include/lwp.h
 	$(CC) $(CFLAGS) -o rr.o -c rr.c
+
+libPLN.so: ../lib64/libPLN.a
+		$(CC) -shared -o $@ $<
+libsnakes.so: ../lib64/libsnakes.a
+		$(CC) -shared -o $@ $<
