@@ -1,28 +1,19 @@
-CC 	= gcc
+CC      = gcc
+CFLAGS  = -Wall -g -I .
+LD      = gcc
+LDFLAGS = -Wall -g
 
-CFLAGS  = -Wall -g -arch x86_64 -I ../include
+PROGS       = snakes nums hungry
+SNAKEOBJS   = randomsnakes.o
+HUNGRYOBJS  = hungrysnakes.o
+NUMOBJS     = numbersmain.o
+OBJS        = $(SNAKEOBJS) $(HUNGRYOBJS) $(NUMOBJS)
+SRCS        = randomsnakes.c numbersmain.c hungrysnakes.c
+HDRS        =
 
-LD 	= gcc
+EXTRACLEAN  = core $(PROGS)
 
-LDFLAGS  = -Wall -g -L ../lib64
-
-PROGS	= snakes nums hungry
-
-SNAKEOBJS  = randomsnakes.o util.o
-
-SNAKELIBS = lib64/libPLN.a lib64/libsnakes.a -lncurses
-
-HUNGRYOBJS = hungrysnakes.o util.o
-
-NUMOBJS    = numbersmain.o
-
-OBJS	= $(SNAKEOBJS) $(HUNGRYOBJS) $(NUMOBJS)
-
-EXTRACLEAN = core $(PROGS)
-
-.PHONY: all allclean clean rs hs ns
-
-all: 	$(PROGS)
+all: $(PROGS)
 
 allclean: clean
 	@rm -f $(EXTRACLEAN)
@@ -30,40 +21,26 @@ allclean: clean
 clean:
 	rm -f $(OBJS) *~ TAGS
 
-snakes: randomsnakes.o util.o lib64/libPLN.a lib64/libsnakes.a
-	$(LD) $(LDFLAGS) -o snakes randomsnakes.o util.o $(SNAKELIBS)
+snakes: randomsnakes.o libLWP.a libsnakes.a
+	$(LD) $(LDFLAGS) -o snakes randomsnakes.o -L. -lncurses -lsnakes -lLWP
 
-hungry: hungrysnakes.o  util.o lib64/libPLN.a lib64/libsnakes.a
-	$(LD) $(LDFLAGS) -o hungry hungrysnakes.o util.o $(SNAKELIBS)
+hungry: hungrysnakes.o libLWP.a libsnakes.a
+	$(LD) $(LDFLAGS) -o hungry hungrysnakes.o -L. -lncurses -lsnakes -lLWP
 
-nums: numbermain.o  util.o lib64/libPLN.a
-	$(LD) $(LDFLAGS) -o nums numbersmain.o ../lib64/libPLN.a
+nums: numbersmain.o libLWP.a
+	$(LD) $(LDFLAGS) -o nums numbersmain.o -L. -lLWP
 
-hungrysnakes.o: demos/hungrysnakes.c include/lwp.h include/snakes.h
-	$(CC) $(CFLAGS) -c demos/hungrysnakes.c
+hungrysnakes.o: lwp.h snakes.h
 
-randomsnakes.o: demos/randomsnakes.c ./include/lwp.h include/snakes.h
-	$(CC) $(CFLAGS) -c demos/randomsnakes.c
+randomsnakes.o: lwp.h snakes.h
 
-numbermain.o: demos/numbersmain.c include/lwp.h
-	$(CC) $(CFLAGS) -c demos/numbersmain.c
+numbersmain.o: lwp.h
 
-util.o: demos/util.c include/lwp.h include/util.h include/snakes.h
-	$(CC) $(CFLAGS) -c demos/util.c
+libLWP.a: lwp.c rr.c util.c
+	$(CC) -c lwp.c rr.c util.c
+	ar r libLWP.a lwp.o rr.o util.o
+	rm lwp.o rr.o util.o
 
-rs: snakes
-	(export LD_LIBRARY_PATH=../lib64; ./snakes)
-
-hs: hungry
-	(export LD_LIBRARY_PATH=../lib64; ./hungry)
-
-ns: nums
-	(export LD_LIBRARY_PATH=../lib64; ./nums)
-
-rr.o: src/rr.c include/lwp.h
-	$(CC) $(CFLAGS) -o rr.o -c rr.c
-
-libPLN.so: lib64/libPLN.a
-		$(CC) -shared -o $@ $<
-libsnakes.so: lib64/libsnakes.a
-		$(CC) -shared -o $@ $<
+submission: lwp.c rr.c util.c Makefile README.md
+	tar -cf project2_submission.tar lwp.c rr.c Makefile README
+	gzip project2_submission.tar
