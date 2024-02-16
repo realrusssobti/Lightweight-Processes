@@ -22,16 +22,17 @@ clean:
 	rm -f $(OBJS) *~ TAGS
 
 snakes: randomsnakes.o libLWP.so libsnakes.so
-	$(LD) $(LDFLAGS) -o snakes randomsnakes.o -L. -lncurses -lsnakes -lLWP -lPLN
-
+	#$(LD) $(LDFLAGS) -o snakes randomsnakes.o -L. -lncurses -lsnakes -lLWP -lPLN
+	$(LD) $(LDFLAGS) -o snakes randomsnakes.o  libsnakes.a libLWP.a libPLN.a -lncurses
 hungry: hungrysnakes.o libLWP.so libsnakes.so
-	$(LD) $(LDFLAGS) -o hungry hungrysnakes.o -L. -lncurses -lsnakes -lLWP -lPLN
+	#$(LD) $(LDFLAGS) -o hungry hungrysnakes.o -L. -lncurses -lsnakes -lLWP -lPLN
+	$(LD) $(LDFLAGS) -o hungry hungrysnakes.o libsnakes.a libLWP.a libPLN.a -lncurses
 
 
 libsnakes.so:
 	$(LD) -shared -o libsnakes.so libsnakes.a
 nums: numbersmain.o libLWP.so
-	$(LD) $(LDFLAGS) -o nums numbersmain.o -L. -lLWP -lPLN
+	$(LD) $(LDFLAGS) -o nums numbersmain.o libLWP.a libPLN.a -lncurses
 
 
 libLWP.so:
