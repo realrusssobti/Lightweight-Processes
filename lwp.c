@@ -69,10 +69,10 @@ extern tid_t lwp_create(lwpfun function, void *args) {
 extern void lwp_exit(int status) {
 	struct threadinfo_st *tinfo = &threads[current];
 	tinfo->exited = (thread)(unsigned long)(int)status;
-	thread->status = DONE;
+	tinfo->status = DONE;
 	tid_t old = current;
 	current = SCHEDULER->next()->tid;
-	lwp_schedule()
+	lwp_schedule();
 	// check if old thread needs to be admitted to the scheduler
 	if (threads[old].status == READY) {
 		SCHEDULER->admit(&threads[old]);
