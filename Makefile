@@ -21,14 +21,21 @@ allclean: clean
 clean:
 	rm -f $(OBJS) *~ TAGS
 
-snakes: randomsnakes.o libLWP.a libsnakes.a
+snakes: randomsnakes.o libLWP.so libsnakes.so
 	$(LD) $(LDFLAGS) -o snakes randomsnakes.o -L. -lncurses -lsnakes -lLWP
 
-hungry: hungrysnakes.o libLWP.a libsnakes.a
+hungry: hungrysnakes.o libLWP.so libsnakes.so
 	$(LD) $(LDFLAGS) -o hungry hungrysnakes.o -L. -lncurses -lsnakes -lLWP
 
-nums: numbersmain.o libLWP.a
+
+libsnakes.so:
+	$(LD) -shared -o libsnakes.so libsnakes.a
+nums: numbersmain.o libLWP.so
 	$(LD) $(LDFLAGS) -o nums numbersmain.o -L. -lLWP
+
+
+libLWP.so:
+	$(LD) -shared -o libLWP.so libLWP.a
 
 hungrysnakes.o: lwp.h snakes.h
 
