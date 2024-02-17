@@ -49,6 +49,6 @@ libLWP.a: lwp.c rr.c util.c
 	ar r libLWP.a lwp.o rr.o util.o
 	rm lwp.o rr.o util.o
 
-submission: lwp.c rr.c util.c Makefile README.md
-	tar -cf project2_submission.tar lwp.c rr.c Makefile README
+submission:
+	tar -cf project2_submission.tar lwp.c rr.c Makefile README.md
 	gzip project2_submission.tar

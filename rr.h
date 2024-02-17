@@ -2,10 +2,10 @@
 #define RRH
 #include "lwp.h"
 
-void init(void);
-void shutdown(void);
-void admit(thread new);
-void remove(thread victim);
-thread next(void);
-int qlen(void);
+void rr_init(void);
+void rr_shutdown(void);
+void rr_admit(thread new);
+void rr_remove(thread victim);
+thread rr_next(void);
+int rr_qlen(void);
 #endif

@@ -5,19 +5,19 @@ thread head = NULL;
 thread tail = NULL;
 int qlength = 0;
 
-void init(void){
+void rr_init(void){
     head = NULL;
     tail = NULL;
     qlength = 0;
 }
 
-void shutdown(void){
+void rr_shutdown(void){
     head = NULL;
     tail = NULL;
     qlength = 0;
 }
 
-void admit(thread new) {
+void rr_admit(thread new) {
     qlength++;
     if (qlength == 1) { //add the first element
         head = new;
@@ -31,7 +31,7 @@ void admit(thread new) {
     }
 }
 
-void remove(thread victim) {
+void rr_remove(thread victim) {
     thread current = tail;
     while (current && current->tid != victim->tid) {
         current = current->sched_two;
@@ -57,7 +57,7 @@ void remove(thread victim) {
     qlength--;
 }
 
-thread next(void) {
+thread rr_next(void) {
     thread current;
 
     if (qlength == 0) {
@@ -80,6 +80,6 @@ thread next(void) {
     return current;
 }
 
-int qlen(void){
+int rr_qlen(void){
     return qlength;
 }
