@@ -57,7 +57,7 @@ void remove(thread victim) {
     qlength--;
 }
 
-thread sched_one(void) {
+thread next(void) {
     thread current;
 
     if (qlength == 0) {
@@ -76,10 +76,10 @@ thread sched_one(void) {
     current->sched_two = NULL;
 
     qlength--;
+    admit(current); //put the element back at the tail
     return current;
-    //must call admit on thread to requeue in schedule after (not in) function
 }
 
-int qlen(){
+int qlen(void){
     return qlength;
 }

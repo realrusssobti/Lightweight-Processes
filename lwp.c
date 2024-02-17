@@ -1,5 +1,5 @@
 //
-// Created by Russ Sobti on 2/15/24.
+// Created by Russ Sobti and Diana Koralski on 2/15/24.
 //
 
 // include some stuff
@@ -7,6 +7,7 @@
 #include <string.h>
 #include <sys/mman.h>
 #include "lwp.h"
+#include "rr.h"
 
 // define some stuff
 #define STACK_SIZE (1024*1024*8)
@@ -17,7 +18,8 @@
 
 static struct threadinfo_st threads[MAX_LWPS];
 static tid_t current = NO_THREAD;
-static scheduler SCHEDULER = NULL;
+static scheduler rr_scheduler = {init, shutdown, admit, next, qlen};
+scheduler SCHEDULER = &rr_scheduler;
 static void lwp_schedule();
 
 extern tid_t lwp_create(lwpfun function, void *args) {
@@ -55,13 +57,13 @@ extern tid_t lwp_create(lwpfun function, void *args) {
 	thread->state.rdi = (unsigned long)args;
 	thread->state.rbp = (unsigned long)function;
 
-	tid_t old = current;
-	current = tid;
-	lwp_schedule();
+	//tid_t old = current;
+//	current = tid;
+//	lwp_schedule();
 	// admit the new thread to the scheduler
-	if(thread->status == READY) {
-		SCHEDULER->admit(thread);
-	}
+
+    SCHEDULER->admit(thread);
+
 	return tid;
 
 }
@@ -99,8 +101,9 @@ extern void lwp_start() {
 	// set up a thread and admit it to start the scheduler
 	struct threadinfo_st *thread = &threads[0];
 	current = thread->tid;
-	SCHEDULER->admit(thread);
+//	SCHEDULER->admit(thread);
 	lwp_schedule(); // let it rip!
+
 }
 
 extern void lwp_set_scheduler(scheduler fun) {
@@ -124,7 +127,7 @@ extern tid_t lwp_wait(int *status) {
 	for(thread = 1; thread < MAX_LWPS; thread++) {
 		if (threads[thread].status == DONE) {
 			tid = thread;
-			*status = threads[thread].state.rdi;
+//			*status = threads[thread].state.rdi;
 			if (status){
 				*status = (int)(unsigned long)threads[thread].exited;
 			}
@@ -139,7 +142,7 @@ static void lwp_schedule() {
 	current = SCHEDULER->next()->tid;
 	swap_rfiles(&threads[old].state, &threads[current].state);
 	// check if old thread needs to be admitted to the scheduler
-	if (threads[old].status == READY) {
-		SCHEDULER->admit(&threads[old]);
-	}
+//	if (threads[old].status == READY) {
+//		SCHEDULER->admit(&threads[old]);
+//	}
 }
