@@ -43,10 +43,10 @@ randomsnakes.o: lwp.h snakes.h
 numbersmain.o: lwp.h
 
 libLWP.a: 
-	$(CC) -c lwp.c util.c rr.c
-	ar r libLWP.a lwp.o util.o rr.o
-	rm lwp.o util.o rr.o
+	$(CC) -c lwp.c util.c rr.c list.c
+	ar r libLWP.a lwp.o util.o rr.o list.o
+	rm lwp.o util.o rr.o list.o
 
 submission:
-	tar -cf project2_submission.tar lwp.c lwp.h rr.c rr.h Makefile README.md
+	tar -cf project2_submission.tar lwp.c lwp.h rr.c rr.h list.h list.c Makefile README.md
 	gzip project2_submission.tar

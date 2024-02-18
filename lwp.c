@@ -4,6 +4,7 @@
 
 #include "lwp.h"
 #include "rr.h"
+#include "list.h"
 #include <stdlib.h>
 #include <sys/mman.h>
 #include <stdio.h>
@@ -11,29 +12,20 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdbool.h>
 
 #define STACK_SIZE (1024*1024*8) // 8 MB
 #define MAX_LWPS 32
 
 tid_t last_tid = 0;
 thread current = NULL;
-scheduler current_scheduler = NULL;
 thread* threads[MAX_LWPS]; // Mapping tid to thread
 
-typedef struct general_list{
-        void   (*admit)(thread new, struct general_list *this_list);
-        void   (*remove)(thread victim, struct general_list *this_list);
-        thread head;
-} list;
+list wait_list = {enqueue, dequeue, NULL};
+list blocked_list = {enqueue, dequeue, NULL};
 
-void w_admit(thread new, list *this_list);
-void w_remove(thread victim, list *this_list);
-
-list wait_list = {w_admit, w_remove, NULL};
-list blocked_list = {w_admit, w_remove, NULL};
-
-struct scheduler rr_publish = {rr_init, rr_shutdown, rr_admit, rr_remove, rr_next, rr_qlen};
-scheduler rr_scheduler = &rr_publish;
+struct scheduler rr_scheduler = {rr_init, rr_shutdown, rr_admit, rr_remove, rr_next, rr_qlen};
+scheduler current_scheduler = &rr_scheduler;
 
 void lwp_set_scheduler(scheduler x){
 	current_scheduler = x;
@@ -46,56 +38,12 @@ scheduler lwp_get_scheduler(void){
 	return current_scheduler;	
 }
 
-void w_admit(thread new, list *this_list){
-	if (new == NULL){
-		return;
-	}
-	if (this_list->head == NULL){
-		this_list->head = new;
-		new->sched_one = NULL;
-	}
-	else{
-		thread current_thread = this_list->head;
-		while (current_thread->sched_one != NULL){
-			current_thread = current_thread->sched_one;
-		}
-		current_thread->sched_one = new;
-		new->sched_one = NULL;                                         
-	}
-}
-
-void w_remove(thread victim, list *this_list){
-    if (victim == NULL || this_list->head == NULL){
-        return;
-    }
-    thread previous_thread = NULL;
-    thread current_thread = this_list->head;
-	while (current_thread != NULL){
-		if (current_thread->tid == victim->tid){
-			if(previous_thread == NULL){
-				this_list->head = current_thread->sched_one;
-			}
-			else{
-				previous_thread->sched_one = current_thread->sched_one;
-			}
-			break;
-		}
-		previous_thread = current_thread;
-		current_thread = current_thread->sched_one;
-	}
-    
-}
-
 void lwp_wrap(lwpfun fun, void *arg) {
 	int rval = fun(arg);
 	lwp_exit(rval);
 }
 
 tid_t lwp_create(lwpfun function,void *argument){
-   	if (current_scheduler == NULL){
-		lwp_set_scheduler(rr_scheduler);
-	}
-	
 	thread new_thread = (thread)malloc(sizeof(context));
     unsigned long *base = (unsigned long *)mmap(NULL, STACK_SIZE,
 		PROT_READ|PROT_WRITE,MAP_PRIVATE|MAP_ANONYMOUS|MAP_STACK,-1,0);
@@ -112,7 +60,7 @@ tid_t lwp_create(lwpfun function,void *argument){
     new_thread->tid = last_tid;
     new_thread->state.rsp = (unsigned long) offset;
     new_thread->state.rbp = (unsigned long) offset;
-    new_thread->state.fxsave=FPU_INIT;
+    new_thread->state.fxsave = FPU_INIT;
     new_thread->state.rdi = (unsigned long) function;
     new_thread->state.rsi = (unsigned long) argument;
 	new_thread->lib_one = NULL;
@@ -122,11 +70,7 @@ tid_t lwp_create(lwpfun function,void *argument){
 	return new_thread->tid;
 }
 
-
 void lwp_start(void){
-	if (current_scheduler == NULL){
-        lwp_set_scheduler(rr_scheduler);
-    }
 	thread main_thread = (thread)malloc(sizeof(context));
 	main_thread->stack = NULL;
 	main_thread->tid = 0;
@@ -148,7 +92,6 @@ void lwp_exit(int status){
 		return;		
 	}
 	lwp_yield();
-	
 }
 
 tid_t lwp_wait(int *status){
@@ -157,12 +100,12 @@ tid_t lwp_wait(int *status){
 		 	return NO_THREAD;
 		}
 		current_scheduler->remove(current);
-		blocked_list.admit(current, &blocked_list);
+		blocked_list.enqueue(current, &blocked_list);
 		lwp_yield();
 	}
 	else{
 		current->lib_one = wait_list.head;
-		wait_list.remove(wait_list.head, &wait_list);
+		wait_list.dequeue(wait_list.head, &wait_list);
 	}
 	thread terminated = current->lib_one;
 	if(terminated == NULL){
@@ -186,20 +129,20 @@ void lwp_yield(void){
 		//when the thread is terminated we need to put it in a blocked_list or wait_list
 		current_scheduler->remove(previous);
 		thread current_blocked = blocked_list.head;
-		int waitlist_flag = 1;
+		bool add_to_waitlist = true;
 		while (current_blocked != NULL){
 			if(current_blocked->lib_one == NULL){
 				current_blocked->lib_one = previous;
-				blocked_list.remove(current_blocked, 
+				blocked_list.dequeue(current_blocked, 
 				&blocked_list);
 				current_scheduler->admit(current_blocked);
-				waitlist_flag = 0;
+				add_to_waitlist = false;
 				break;
 			}
 			current_blocked = current_blocked->sched_one;
 		}
-		if(waitlist_flag){
-			wait_list.admit(previous,&wait_list);	
+		if(add_to_waitlist){
+			wait_list.enqueue(previous,&wait_list);	
 		}						
 	}
 	current = current_scheduler->next();
