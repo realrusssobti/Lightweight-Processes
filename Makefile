@@ -15,11 +15,9 @@ EXTRACLEAN  = core $(PROGS)
 
 all: $(PROGS)
 
-allclean: clean
-	@rm -f $(EXTRACLEAN)
-
 clean:
-	rm -f $(OBJS) *~ TAGS
+	rm -f $(OBJS) $(EXTRACLEAN) lwp.o magic64.o libLWP.a libLWP.so libsnakes.so
+
 
 snakes: randomsnakes.o libLWP.so libsnakes.so
 	#$(LD) $(LDFLAGS) -o snakes randomsnakes.o -L. -lncurses -lsnakes -lLWP -lPLN
@@ -35,7 +33,7 @@ nums: numbersmain.o libLWP.so
 	$(LD) $(LDFLAGS) -o nums numbersmain.o libLWP.a libPLN.a -lncurses
 
 
-libLWP.so:
+libLWP.so: libLWP.a
 	$(LD) -shared -o libLWP.so libLWP.a
 
 hungrysnakes.o: lwp.h snakes.h
@@ -44,11 +42,11 @@ randomsnakes.o: lwp.h snakes.h
 
 numbersmain.o: lwp.h
 
-libLWP.a: lwp.c rr.c util.c
-	$(CC) -c lwp.c rr.c util.c
-	ar r libLWP.a lwp.o rr.o util.o
-	rm lwp.o rr.o util.o
+libLWP.a: 
+	$(CC) -c lwp.c util.c rr.c
+	ar r libLWP.a lwp.o util.o rr.o
+	rm lwp.o util.o rr.o
 
 submission:
-	tar -cf project2_submission.tar lwp.c rr.c Makefile README.md
+	tar -cf project2_submission.tar lwp.c lwp.h rr.c rr.h Makefile README.md
 	gzip project2_submission.tar

@@ -1,85 +1,89 @@
 #include "lwp.h"
+#include "rr.h"
 #include <stddef.h>
 
 thread head = NULL;
 thread tail = NULL;
-int qlength = 0;
+int qlen = 0;
 
 void rr_init(void){
     head = NULL;
     tail = NULL;
-    qlength = 0;
+    qlen = 0;
 }
 
 void rr_shutdown(void){
     head = NULL;
     tail = NULL;
-    qlength = 0;
+    qlen = 0;
 }
 
-void rr_admit(thread new) {
-    qlength++;
-    if (qlength == 1) { //add the first element
+
+void rr_admit(thread new){
+    if (new == NULL){
+        return;
+    }
+    if (head == NULL){
         head = new;
-        tail = new;
+        new->sched_one = NULL;
     }
     else{
-        tail->sched_one = new;
-        new->sched_two = tail;
+        thread current_thread = head;
+        while (current_thread->sched_one != NULL){
+            current_thread = current_thread->sched_one;
+        }
+        current_thread->sched_one = new;
         new->sched_one = NULL;
-        tail = new;
+    }
+	qlen++;
+}
+
+void rr_remove(thread victim){
+    if (victim == NULL){
+        return;
+    }
+    thread previous_thread = NULL;
+    thread current_thread = head;
+    if (current_thread == NULL){
+        return;
+    }
+    else {
+        while (current_thread != NULL){
+            if (current_thread->tid == victim->tid){
+                if(previous_thread == NULL){
+                    head = current_thread->sched_one;
+                }
+                else{
+                    previous_thread->sched_one = current_thread->sched_one;
+                }
+				qlen--;
+                return;
+            }
+            previous_thread = current_thread;
+            current_thread = current_thread->sched_one;
+        }
     }
 }
 
-void rr_remove(thread victim) {
-    thread current = tail;
-    while (current && current->tid != victim->tid) {
-        current = current->sched_two;
-    }
-
-    if (current == NULL || current->tid != victim->tid) {
-        return; //victim not found
-    }
-
-    if (current->sched_two) {
-        current->sched_two->sched_one = current->sched_one;
-    } else {
-        head = current->sched_one;
-        head->sched_two = NULL;
-    }
-
-    if (current->sched_one) {
-        current->sched_one->sched_two = current->sched_two;
-    } else {
-        tail = current->sched_two;
-        tail->sched_one = NULL;
-    }
-    qlength--;
+thread rr_next(void){
+        if(head == NULL){
+                return NULL;
+        }
+        if(head->sched_one == NULL){
+                return head;
+        }
+        thread current_thread = head;
+        while (current_thread->sched_one != NULL){
+                current_thread = current_thread->sched_one;
+        }
+        thread next = head;
+        head = head->sched_one;
+        current_thread->sched_one = next;
+        next->sched_one = NULL;
+        //printf("new head = %d, new tail = %d\n", head->tid, next->tid);
+     	return next;
 }
-
-thread rr_next(void) {
-    thread current;
-
-    if (qlength == 0) {
-        return NULL;
-    }
-
-    current = head;
-    head = head->sched_one;
-    if (head) {
-        head->sched_two = NULL;
-    } else {
-        tail = NULL;
-    }
-
-    current->sched_one = NULL;
-    current->sched_two = NULL;
-
-    qlength--;
-    admit(current); //put the element back at the tail
-    return current;
-}
-
-int rr_qlen(void){
-    return qlength;
+        
+int rr_qlen(){
+	return qlen;
 }
